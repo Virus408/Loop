@@ -19,7 +19,7 @@ jobs:
       - name: Generate Xcode Project
         run: xcodegen generate
 
-          - name: Build App
+      - name: Build App
         run: |
           xcodebuild build \
             -project Loop.xcodeproj \
