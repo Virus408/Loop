@@ -19,7 +19,7 @@ jobs:
       - name: Generate Xcode Project
         run: xcodegen generate
 
-      - name: Build App
+          - name: Build App
         run: |
           xcodebuild build \
             -project Loop.xcodeproj \
@@ -28,6 +28,7 @@ jobs:
             -configuration Release \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
             -derivedDataPath build
 
       - name: Upload Build Artifact
