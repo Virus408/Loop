@@ -111,7 +111,7 @@ struct TrackRowView: View {
                 }
             }
         }
-        .onChange(of: state) { newState in
+        .onChange(of: state, perform: { newState in
             if newState == .recording {
                 pulse = false
                 withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
@@ -126,7 +126,7 @@ struct TrackRowView: View {
     private func formatDuration(_ duration: TimeInterval) -> String {
         let seconds = Int(duration)
         if seconds >= 60 {
-            return "\(seconds / 60):\(String(seconds % 60, paddingToLeft: 2, character: "0"))"
+            return String(format: "%d:%02d", seconds / 60, seconds % 60)
         } else {
             return "\(seconds)s"
         }
@@ -138,12 +138,5 @@ struct TrackButtonStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
             .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
-    }
-}
-
-extension String {
-    func paddingToLeft(length: Int, character: Character) -> String {
-        if self.count >= length { return self }
-        return String(repeatElement(character, count: length - self.count)) + self
     }
 }

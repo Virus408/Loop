@@ -16,7 +16,7 @@ final class LoopTrack: Identifiable {
 
     private(set) var state: TrackState = .empty
 
-    private var mainBuffer: AVAudioPCMBuffer?
+    private(set) var mainBuffer: AVAudioPCMBuffer?
     private var recordingChunks: [AVAudioPCMBuffer] = []
     private var overdubStartOffset: AVAudioFrameCount = 0
 

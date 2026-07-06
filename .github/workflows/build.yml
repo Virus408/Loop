@@ -13,14 +13,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -switch /Applications/Xcode.app
+          xcodebuild -version
+          swift --version
+
       - name: Install XcodeGen
         run: brew install xcodegen
 
       - name: Generate Xcode Project
-        run: xcodegen generate
+        run: |
+          xcodegen generate
+          echo "=== Generated project structure ==="
+          find . -name "*.swift" -o -name "*.plist" -o -name "*.json" | sort
+          echo "=== Xcode project files ==="
+          ls -la Loop.xcodeproj/
+          echo "=== Generated Info.plist ==="
+          cat Loop/Info.plist 2>/dev/null || echo "(Info.plist not found)"
+
+      - name: List available simulators and devices
+        run: |
+          xcodebuild -showsdks | head -30
+          echo "=== Available destinations ==="
+          xcodebuild -project Loop.xcodeproj -list
 
       - name: Build App
         run: |
+          set -o pipefail
           xcodebuild build \
             -project Loop.xcodeproj \
             -scheme Loop \
@@ -29,11 +49,59 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            -derivedDataPath build
+            CODE_SIGN_ENTITLEMENTS="" \
+            -derivedDataPath build \
+            2>&1 | tee build.log
 
-      - name: Upload Build Artifact
+      - name: Show build errors on failure
+        if: failure()
+        run: |
+          echo "========== ALL ERROR LINES =========="
+          grep -iE "(error:|fatal error|Cannot find|no such|Undefined symbol|linker command failed|BUILD FAILED)" build.log || echo "(no error lines found)"
+          echo ""
+          echo "========== COMPILATION ERRORS (with context) =========="
+          grep -B2 -A2 "error:" build.log || echo "(no compilation errors found)"
+          echo ""
+          echo "========== LAST 100 LINES OF BUILD LOG =========="
+          tail -100 build.log
+
+      - name: Verify build output
+        if: success()
+        run: |
+          echo "=== Build products ==="
+          find build/Build/Products -type f 2>/dev/null || echo "No build products found"
+          echo "=== App bundle contents ==="
+          ls -la build/Build/Products/Release-iphoneos/Loop.app/ 2>/dev/null || echo "No .app found"
+
+      - name: Package IPA
+        if: success()
+        run: |
+          mkdir -p Payload
+          cp -r build/Build/Products/Release-iphoneos/Loop.app Payload/
+          zip -r Loop.ipa Payload -x "*.DS_Store"
+          echo "=== IPA created ==="
+          ls -la Loop.ipa
+
+      - name: Upload .app Artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: Loop-app
           path: build/Build/Products/Release-iphoneos/Loop.app
           retention-days: 30
+
+      - name: Upload IPA Artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Loop-ipa
+          path: Loop.ipa
+          retention-days: 30
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          retention-days: 7
